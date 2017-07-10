@@ -1,0 +1,4 @@
+.
+flake8
+pep257
+hacking
