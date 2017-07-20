@@ -16,9 +16,6 @@
 import setuptools
 
 setuptools.setup(
-    version="0.1.0",
-    name="f5-openstack-ml2-driver",
-    description="F5 Networks OpenStack Neutron ML2 plugin driver",
-    license='Apache License, Version 2.0',
-    author="F5 Networks"
+    setup_requires=['pbr'],
+    pbr=True
 )
