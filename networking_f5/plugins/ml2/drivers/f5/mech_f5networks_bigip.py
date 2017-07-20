@@ -63,5 +63,5 @@ class F5NetworksMechanismDriver(api.MechanismDriver):
             else:
                 LOG.debug("F5Networks Mechanism Driver not binding port")
 
-    def _is_f5_port(port):
+    def _is_f5lbaas_port(self, port):
         return port['device_owner'] == 'network:f5lbaasv2'
