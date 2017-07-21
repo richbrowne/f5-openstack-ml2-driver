@@ -13,7 +13,7 @@ before_install:
 install:
   - pip install tox
   - pip install -r requirements.test.txt
-  - pip install -r requirements.docs.txt
+  - pip install -r requirements.style.txt
   - python ./setup.py install
 script:
   - tox -e style
