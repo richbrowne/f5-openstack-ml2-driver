@@ -1,5 +1,6 @@
 CHANGES
 =======
 
+* Adding initial implementation of the F5 Network mech driver
 * Setup of F5 Network ML2 project
 * Initial commit
