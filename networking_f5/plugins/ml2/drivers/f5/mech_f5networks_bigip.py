@@ -18,14 +18,18 @@ u"""This module provides a ML2 driver for BIG-IP."""
 
 from oslo_log import log
 
+from neutron._i18n import _LW
 from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api as api
-
+from neutron.plugins.ml2.drivers import mech_agent
+from neutron_lib import constants as q_const
 
 LOG = log.getLogger(__name__)
 
+VNIC_F5_APPLIANCE = 'f5appliance'
+AGENT_TYPE_LOADBALANCERV2 = 'Loadbalancerv2 agent'
 
-class F5NetworksMechanismDriver(api.MechanismDriver):
+class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
     """F5NetworksMechanismDriver implementation.
 
     Provides BIG-IP with Neutron Port Binding capability.
@@ -33,35 +37,36 @@ class F5NetworksMechanismDriver(api.MechanismDriver):
 
     def __init__(self):
         """Create F5NetworksMechanismDriver."""
-        super(F5NetworksMechanismDriver, self).__init__()
+        super(F5NetworksMechanismDriver, self).__init__(
+            AGENT_TYPE_LOADBALANCERV2,
+            [VNIC_F5_APPLIANCE])
 
     def initialize(self):
         """Initialize the F5Networks mechanism driver."""
         LOG.debug("F5Networks Mechanism Driver Initialize")
 
-    def bind_port(self, context):
-        """Bind the port for a BIG-IP device.
+    def try_to_bind_segment_for_agent(self, context, segment, agent):
 
-        :param context: PortContext instaces describing the port
+        agent_config = agent.get('configurations', {})
+        tunnel_types = agent_config.get("tunnel_types", [])
+        tunnel_types.append('vlan')
 
-        We need to bind the port for the BIG-IP agent.  This is not
-        connected to any other network.
+        network_type = segment.get('network_type', "")
 
-        """
-        LOG.debug(
-            "Attempting to bind port %(port)s on "
-            "network %(network)s",
-            {'port': context.current['id'],
-             'network': context.network.current['id']})
+        bind_segment = False
+        if network_type in tunnel_types:
+            bind_segment = True
 
-        for segment in context.segments_to_bind:
-            if self._is_f5lbaas_port(context.current):
-                context.set_binding(
-                    segment['id'],
-                    portbindings.VIF_TYPE_OTHER,
-                    {})
-            else:
-                LOG.debug("F5Networks Mechanism Driver not binding port")
+        if bind_segment:
+            context.set_binding(
+                segment['id'],
+                portbindings.VIF_TYPE_OTHER,
+                {})
 
-    def _is_f5lbaas_port(self, port):
+        return bind_segment
+        
+    def _is_f5lbaasv2_device_owner(self, port):
         return port['device_owner'] == 'network:f5lbaasv2'
+
+    def _is_f5appliance_vnic(self, vnic_type):
+        return vnic_type == VNIC_F5_APPLIANCE
