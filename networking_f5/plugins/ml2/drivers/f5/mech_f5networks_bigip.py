@@ -18,16 +18,16 @@ u"""This module provides a ML2 driver for BIG-IP."""
 
 from oslo_log import log
 
-from neutron._i18n import _LW
 from neutron.extensions import portbindings
+from neutron.plugins.common import constants as p_constants
 from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2.drivers import mech_agent
-from neutron_lib import constants as q_const
 
 LOG = log.getLogger(__name__)
 
 VNIC_F5_APPLIANCE = 'f5appliance'
 AGENT_TYPE_LOADBALANCERV2 = 'Loadbalancerv2 agent'
+
 
 class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
     """F5NetworksMechanismDriver implementation.
@@ -46,25 +46,59 @@ class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
         LOG.debug("F5Networks Mechanism Driver Initialize")
 
     def try_to_bind_segment_for_agent(self, context, segment, agent):
+        """Try to bind with segment for agent.
 
+        :param context: PortContext instance describing the port
+        :param segment: segment dictionary describing segment to bind
+        :param agent: agents_db entry describing agent to bind
+        :returns: True iff segment has been bound for agent
+
+        Called outside any transaction during bind_port() so that
+        derived MechanismDrivers can use agent_db data along with
+        built-in knowledge of the corresponding agent's capabilities
+        to attempt to bind to the specified network segment for the
+        agent.
+        """
         agent_config = agent.get('configurations', {})
+
+        # Get the supporting tunnel types (e.g. vxlan, gre)
         tunnel_types = agent_config.get("tunnel_types", [])
-        tunnel_types.append('vlan')
+
+        # Get the BigIP interface to physicaL_network mappings to
+        # determine what networks the BigIP is connected to.
+        bridge_mappings = agent_config.get('bridge_mappings', {})
+
+        # Get the physical network of the Hierachical Port Binding
+        # network segment.
+        hpb_physical_network_segment = agent_config.get(
+            'network_segment_physical_network', None)
 
         network_type = segment.get('network_type', "")
 
         bind_segment = False
+        # For now, the only criteria for binding is if the network
+        # type is supported.  We can modify this for physical network
+        # types, if the agent can report the physical_network for each
+        # of the agent bridge_mappings.
         if network_type in tunnel_types:
             bind_segment = True
+        elif network_type in [p_constants.TYPE_FLAT, p_constants.TYPE_VLAN]:
+            physnet = segment[api.PHYSICAL_NETWORK]
+            if physnet in bridge_mappings:
+                bind_segment = True
+            elif physnet == hpb_physical_network_segment:
+                bind_segment = False
 
+        # Can we bind the port to this segment?
         if bind_segment:
+            # Yes, set the binding.
             context.set_binding(
                 segment['id'],
                 portbindings.VIF_TYPE_OTHER,
                 {})
 
         return bind_segment
-        
+
     def _is_f5lbaasv2_device_owner(self, port):
         return port['device_owner'] == 'network:f5lbaasv2'
 

@@ -1,6 +1,8 @@
 CHANGES
 =======
 
+* Modifying the code to inherit from AgentMechanismDriverBase
+* Fixing install and port ownership test
 * Adding initial implementation of the F5 Network mech driver
 * Setup of F5 Network ML2 project
 * Initial commit
