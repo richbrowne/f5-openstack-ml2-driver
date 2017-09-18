@@ -85,9 +85,9 @@ class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
         #    agent advertises a bridge mapping between the physical_network
         #    of the segment and an interface on the BIG-IP, the port can
         #    be bound.
-        # 3. IF the agent is advertising the physical network name of
+        # 3. If the agent is advertising the physical network name of
         #    a segment in a hierarchical network, the port can be bound
-        #    if the segement physical_network matches that of the agent's
+        #    as long as the segment physical_network matches that of the agent's
         bind_segment = False
         if network_type in tunnel_types:
             LOG.debug("binding segment with tunnel type: %s" % network_type)
