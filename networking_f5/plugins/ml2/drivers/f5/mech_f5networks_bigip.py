@@ -87,7 +87,8 @@ class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
         #    be bound.
         # 3. If the agent is advertising the physical network name of
         #    a segment in a hierarchical network, the port can be bound
-        #    as long as the segment physical_network matches that of the agent's
+        #    as long as the segment physical_network matches that of the
+        #    agent's
         bind_segment = False
         if network_type in tunnel_types:
             LOG.debug("binding segment with tunnel type: %s" % network_type)

@@ -1,9 +1,10 @@
 CHANGES
 =======
 
-* Adding test comments
-* Adding unit testing
-* other fixes
+* Fix typos
+* Adding the constants file for globals
+* Adding some logging and binding port for HPB networks
+* Adding unit testing and test documentation. Updating the unittest requirements Adding code coverage to tox unittest
 * Fixup documentation
 * Modifying the code to inherit from AgentMechanismDriverBase
 * Fixing install and port ownership test
