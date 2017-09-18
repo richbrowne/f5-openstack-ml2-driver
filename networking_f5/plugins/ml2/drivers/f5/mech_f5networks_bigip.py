@@ -18,10 +18,10 @@ u"""This module provides a ML2 driver for BIG-IP."""
 
 from oslo_log import log
 
-from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_constants
 from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2.drivers import mech_agent
+from neutron_lib.api.definitions import portbindings
 
 LOG = log.getLogger(__name__)
 
@@ -59,6 +59,10 @@ class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
         to attempt to bind to the specified network segment for the
         agent.
         """
+        if not agent:
+            LOG.warn("No agent passed in to binding call.")
+            return False
+
         agent_config = agent.get('configurations', {})
 
         # Get the supporting tunnel types (e.g. vxlan, gre)
@@ -73,7 +77,7 @@ class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
         hpb_physical_network_segment = agent_config.get(
             'network_segment_physical_network', None)
 
-        network_type = segment.get('network_type', "")
+        network_type = segment.get(api.NETWORK_TYPE, "")
 
         bind_segment = False
         # For now, the only criteria for binding is if the network
@@ -93,14 +97,8 @@ class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
         if bind_segment:
             # Yes, set the binding.
             context.set_binding(
-                segment['id'],
+                segment[api.ID],
                 portbindings.VIF_TYPE_OTHER,
                 {})
 
         return bind_segment
-
-    def _is_f5lbaasv2_device_owner(self, port):
-        return port['device_owner'] == 'network:f5lbaasv2'
-
-    def _is_f5appliance_vnic(self, vnic_type):
-        return vnic_type == VNIC_F5_APPLIANCE
