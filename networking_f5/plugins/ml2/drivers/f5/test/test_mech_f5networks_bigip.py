@@ -399,8 +399,8 @@ def test_bind_physical_segment_without_hpb_conflict(
     retval = f5_mech_driver.try_to_bind_segment_for_agent(
         context, vlan_segment, agent_hpb_bridge_mappings)
 
-    assert not retval
-    context.set_binding.assert_not_called()
+    assert retval
+    context.set_binding.assert_called_with('seg-uuid', 'other', {})
 
 
 def test_bind_physical_segment_with_hpb_conflict(
