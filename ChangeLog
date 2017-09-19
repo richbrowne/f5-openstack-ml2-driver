@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* Update some code documentation
 * Fix typos
 * Adding the constants file for globals
 * Adding some logging and binding port for HPB networks

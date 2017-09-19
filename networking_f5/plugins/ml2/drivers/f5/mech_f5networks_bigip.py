@@ -18,10 +18,10 @@ u"""This module provides a ML2 driver for BIG-IP."""
 
 from oslo_log import log
 
+from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_constants
 from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2.drivers import mech_agent
-from neutron_lib.api.definitions import portbindings
 
 from networking_f5.plugins.ml2.drivers.f5 import constants
 
