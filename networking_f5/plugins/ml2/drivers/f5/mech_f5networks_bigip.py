@@ -18,31 +18,72 @@ u"""This module provides a ML2 driver for BIG-IP."""
 
 from oslo_log import log
 
+from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_constants
 from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2.drivers import mech_agent
-from neutron_lib.api.definitions import portbindings
 
 from networking_f5.plugins.ml2.drivers.f5 import constants
 
 LOG = log.getLogger(__name__)
 
 
-class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
+class F5NetworksMechanismDriver(mech_agent.SimpleAgentMechanismDriverBase):
     """F5NetworksMechanismDriver implementation.
 
     Provides BIG-IP with Neutron Port Binding capability.
     """
 
-    def __init__(self):
+    def __init__(self,
+                 agent_type=constants.AGENT_TYPE_LOADBALANCERV2,
+                 vif_type=portbindings.VIF_TYPE_OTHER,
+                 vif_details=dict(),
+                 supported_vnic_types=[constants.VNIC_F5_APPLIANCE]):
         """Create F5NetworksMechanismDriver."""
         super(F5NetworksMechanismDriver, self).__init__(
-            constants.AGENT_TYPE_LOADBALANCERV2,
-            [constants.VNIC_F5_APPLIANCE])
+            agent_type=constants.AGENT_TYPE_LOADBALANCERV2,
+            vif_type=portbindings.VIF_TYPE_OTHER,
+            vif_details=dict(),
+            supported_vnic_types=[constants.VNIC_F5_APPLIANCE])
+
+        self.vif_type = vif_type
+        self.vif_details = vif_details
 
     def initialize(self):
         """Initialize the F5Networks mechanism driver."""
         LOG.debug("F5Networks Mechanism Driver Initialize")
+
+    def get_mappings(self, agent):
+        """Return the agent's bridge or interface mappings."""
+        bridge_mappings = dict()
+
+        if agent:
+            agent_config = agent.get('configurations', {})
+            agent_config.get('configurations', {})
+
+            bridge_mappings = agent_config.get(
+                constants.AGENT_BRIDGE_MAPPINGS, {})
+
+        return bridge_mappings
+
+    def get_allowed_network_types(self, agent=None):
+        """Return a list of network types that the agent can bind."""
+        allowed_network_types = list()
+
+        if agent:
+            agent_config = agent.get('configurations', {})
+
+            tunnel_types = agent_config.get(constants.AGENT_TUNNEL_TYPES, [])
+
+            allowed_network_types.extend(tunnel_types)
+
+            bridge_mappings = agent_config.get(
+                constants.AGENT_BRIDGE_MAPPINGS, {})
+            if bridge_mappings:
+                allowed_network_types.extend(
+                    [p_constants.TYPE_FLAT, p_constants.TYPE_VLAN])
+
+        return allowed_network_types
 
     def try_to_bind_segment_for_agent(self, context, segment, agent):
         """Try to bind with segment for agent.
@@ -58,11 +99,32 @@ class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
         to attempt to bind to the specified network segment for the
         agent.
         """
+        # Can we bind the port to this segment?
+        bind_segment = self.check_segment_for_agent(segment, agent)
+        if bind_segment:
+            # Yes, set the binding for now the vif details are
+            # empty.
+            vif_details = dict()
+            context.set_binding(
+                segment[api.ID],
+                portbindings.VIF_TYPE_OTHER,
+                vif_details)
+
+        return bind_segment
+
+    def check_segment_for_agent(self, segment, agent):
+        """Check if it is possible to bind this segment to the agent."""
         if not agent:
             LOG.warn("No agent passed in to binding call.")
             return False
 
         agent_config = agent.get('configurations', {})
+
+        agent_binary = agent.get('binary', "")
+        if agent_binary not in constants.AGENT_BINARIES:
+            LOG.debug("F5 mech driver does not support agent %s.",
+                      agent_binary)
+            return False
 
         # Get the supporting tunnel types (e.g. vxlan, gre)
         tunnel_types = agent_config.get(constants.AGENT_TUNNEL_TYPES, [])
@@ -96,27 +158,17 @@ class F5NetworksMechanismDriver(mech_agent.AgentMechanismDriverBase):
         elif network_type in [p_constants.TYPE_FLAT, p_constants.TYPE_VLAN]:
             physnet = segment[api.PHYSICAL_NETWORK]
             if physnet in bridge_mappings:
-                LOG.debug("binding segment with network type: %(network_type) "
-                          "on physical network %(physical_network)",
+                LOG.debug("binding segment with network type: %(network_type)s"
+                          " on physical network %(physical_network)s.",
                           {'network_type': network_type,
                            'physical_network': physnet})
                 bind_segment = True
             elif physnet == hpb_physical_network_segment:
-                LOG.debug("binding segment with network type: %(network_type) "
-                          "on hierarchical network, physical network "
-                          "%(physical_network)",
+                LOG.debug("binding segment with network type: %(network_type)s"
+                          " on hierarchical network, physical network "
+                          "%(physical_network)s",
                           {'network_type': network_type,
                            'physical_network': physnet})
                 bind_segment = True
-
-        # Can we bind the port to this segment?
-        if bind_segment:
-            # Yes, set the binding for now the vif details are
-            # empty.
-            vif_details = dict()
-            context.set_binding(
-                segment[api.ID],
-                portbindings.VIF_TYPE_OTHER,
-                vif_details)
 
         return bind_segment

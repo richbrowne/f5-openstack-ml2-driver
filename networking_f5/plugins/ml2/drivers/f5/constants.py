@@ -22,3 +22,5 @@ AGENT_TYPE_LOADBALANCERV2 = 'Loadbalancerv2 agent'
 AGENT_TUNNEL_TYPES = 'tunnel_types'
 AGENT_BRIDGE_MAPPINGS = 'bridge_mappings'
 AGENT_HPB_PHYSICAL_NETWORK = 'network_segment_physical_network'
+
+AGENT_BINARIES = ["f5-oslbaasv2-agent"]

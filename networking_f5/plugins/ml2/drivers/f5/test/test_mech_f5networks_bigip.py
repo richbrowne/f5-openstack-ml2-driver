@@ -39,13 +39,14 @@ def agent():
     agent = dict()
     agent['tunnel_types'] = []
     agent['bridge_mappings'] = {}
-
+    agent['binary'] = ""
     return agent
 
 
 @pytest.fixture
 def agent_with_vxlan_vtep():
     return {
+        'binary': "f5-oslbaasv2-agent",
         'configurations': {
             'tunnel_types': ['vxlan']
         }
@@ -55,6 +56,7 @@ def agent_with_vxlan_vtep():
 @pytest.fixture
 def agent_with_gre_vtep():
     return {
+        'binary': "f5-oslbaasv2-agent",
         'configurations': {
             'tunnel_types': ['gre']
         }
@@ -64,6 +66,7 @@ def agent_with_gre_vtep():
 @pytest.fixture
 def agent_with_all_vtep():
     return {
+        'binary': "f5-oslbaasv2-agent",
         'configurations': {
             'tunnel_types': ['gre', 'vxlan']
         }
@@ -73,6 +76,7 @@ def agent_with_all_vtep():
 @pytest.fixture
 def agent_bridge_mappings():
     return {
+        'binary': "f5-oslbaasv2-agent",
         'configurations': {
             'bridge_mappings': {
                 "default": "1,3",
@@ -85,6 +89,7 @@ def agent_bridge_mappings():
 @pytest.fixture
 def agent_hpb_bridge_mappings():
     return {
+        'binary': "f5-oslbaasv2-agent",
         'configurations': {
             'bridge_mappings': {
                 "default": "1,3",
@@ -98,6 +103,29 @@ def agent_hpb_bridge_mappings():
 @pytest.fixture
 def agent_no_bridge_mappings():
     return {
+        'binary': "f5-oslbaasv2-agent",
+        'configurations': {
+            'bridge_mappings': {
+            }
+        }
+    }
+
+
+@pytest.fixture
+def agent_no_binary():
+    return {
+        'binary': "f5-oslbaasv2-agent",
+        'configurations': {
+            'bridge_mappings': {
+            }
+        }
+    }
+
+
+@pytest.fixture
+def agent_mismatched_binary():
+    return {
+        'binary': "not-an-f5-agent",
         'configurations': {
             'bridge_mappings': {
             }
@@ -420,3 +448,41 @@ def test_bind_physical_segment_with_hpb_conflict(
 
     assert retval
     context.set_binding.assert_called_with('seg-uuid', 'other', {})
+
+
+def test_bind_no_binary_in_agent_config(
+        f5_mech_driver, context, agent_no_binary, vlan_segment):
+    """Test the proper behaviour when no binary key is in agent config
+
+    Passes if no binding is performed.
+    """
+    retval = f5_mech_driver.try_to_bind_segment_for_agent(
+        context, vlan_segment, agent_no_binary)
+
+    assert not retval
+
+
+def test_bind_mismatched_binary_in_agent_config(
+        f5_mech_driver, context, agent_mismatched_binary, vlan_segment):
+    """Test the proper behaviour when agent binary key is not supported
+
+    Passes if no binding is performed.
+    """
+    retval = f5_mech_driver.try_to_bind_segment_for_agent(
+        context, vlan_segment, agent_mismatched_binary)
+
+    assert not retval
+
+
+def test_get_allowed_network_types(
+        f5_mech_driver, agent_with_all_vtep, agent_bridge_mappings):
+    """Test the correct list of network types given different agent configs
+
+    """
+    retval = f5_mech_driver.get_allowed_network_types(agent_with_all_vtep)
+
+    assert sorted(retval) == ["gre", "vxlan"]
+
+    retval = f5_mech_driver.get_allowed_network_types(agent_bridge_mappings)
+
+    assert sorted(retval) == ["flat", "vlan"]
