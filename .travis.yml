@@ -12,7 +12,7 @@ before_install:
   - git config --global user.name "Travis F5 Openstack"
 install:
   - pip install tox
-  - pip install -r requirements.test.txt
+  - pip install -r requirements.unittest.txt
   - pip install -r requirements.style.txt
   - python ./setup.py install
 script:
