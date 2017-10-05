@@ -1,7 +1,7 @@
 # Install this directory
 -e .
 
-git+https://github.com/openstack/neutron.git@stable/newton
+git+https://github.com/openstack/neutron.git
 git+https://github.com/openstack/oslo.log.git
 
 # Test Requirements
