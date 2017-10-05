@@ -1,0 +1,8 @@
+[run]
+include = ./plugins/ml2/drivers/f5/*
+
+[report]
+show_missing = True 
+omit =
+	./plugins/ml2/drivers/f5/test/*
+	*__init__*
